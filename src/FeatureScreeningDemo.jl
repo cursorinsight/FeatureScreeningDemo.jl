@@ -17,4 +17,6 @@ include("Benchmarking.jl")
 include("CommandLine.jl")
 include("commands.jl")
 
+include("Visualization.jl")
+
 end # module
