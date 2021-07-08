@@ -5,7 +5,9 @@ version = "0.2.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 FeatureScreening = "81355843-3c2b-48ff-a0b2-a7573f067e8f"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 
 [compat]

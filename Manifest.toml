@@ -75,6 +75,7 @@ version = "1.0.0"
 
 [[Dates]]
 deps = ["Printf"]
+pinned = true
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[DecisionTree]]
