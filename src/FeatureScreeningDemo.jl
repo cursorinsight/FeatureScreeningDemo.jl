@@ -10,6 +10,8 @@ module FeatureScreeningDemo
 ### Imports
 ###=============================================================================
 
+include("Utilities.jl")
+
 include("CommandLine.jl")
 include("commands.jl")
 
