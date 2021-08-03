@@ -12,6 +12,8 @@ module FeatureScreeningDemo
 
 include("Utilities.jl")
 
+include("Benchmarking.jl")
+
 include("CommandLine.jl")
 include("commands.jl")
 
