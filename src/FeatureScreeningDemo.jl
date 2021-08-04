@@ -12,6 +12,8 @@ module FeatureScreeningDemo
 
 include("Utilities.jl")
 
+include("Metrics.jl")
+
 include("Benchmarking.jl")
 
 include("Visualization.jl")

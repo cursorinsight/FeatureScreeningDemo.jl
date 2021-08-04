@@ -189,12 +189,12 @@ uuid = "fa42c844-2597-5d31-933b-ebd51ab2693f"
 version = "0.2.0"
 
 [[FeatureScreening]]
-deps = ["DecisionTree", "HDF5", "IterTools", "Logging", "Random", "Statistics"]
-git-tree-sha1 = "abddb216e84897d95a70b0302ca239a783f3ddf2"
-repo-rev = "v0.2.0"
+deps = ["DecisionTree", "HDF5", "IterTools", "Logging", "ProgressMeter", "Random", "Statistics", "UUIDs"]
+git-tree-sha1 = "1adb7372321a98bbcadfe4e54a46c47da1c25f00"
+repo-rev = "dev"
 repo-url = "ssh://git@github.com/cursorinsight/FeatureScreening.jl"
 uuid = "81355843-3c2b-48ff-a0b2-a7573f067e8f"
-version = "0.2.0"
+version = "0.8.0"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -509,6 +509,12 @@ version = "1.2.2"
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[ProgressMeter]]
+deps = ["Distributed", "Printf"]
+git-tree-sha1 = "afadeba63d90ff223a6a48d2009434ecee2ec9e8"
+uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
+version = "1.7.1"
 
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]

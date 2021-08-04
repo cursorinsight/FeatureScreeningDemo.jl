@@ -1,13 +1,20 @@
 name = "FeatureScreeningDemo"
 uuid = "41e3a46c-835a-4a29-936f-279c1c707219"
 authors = ["Cursor Insight <info@cursorinsight.com>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DecisionTree = "7806a523-6efd-50cb-b5f6-3fa6f1930dbb"
 FeatureScreening = "81355843-3c2b-48ff-a0b2-a7573f067e8f"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LazySets = "b4f0291d-fe17-52bc-9479-3d1a343d9043"
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
 julia = "1.6"

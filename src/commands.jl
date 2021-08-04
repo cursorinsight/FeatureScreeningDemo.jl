@@ -9,3 +9,4 @@
 ###=============================================================================
 
 include("commands/example.jl")
+include("commands/benchmark.jl")

@@ -130,8 +130,4 @@ function select_data(measurements::Array{Measurement},
     end
 end
 
-function save(filename::AbstractString, plot; kwargs...)
-    return savefig(plot, filename; kwargs...)
-end
-
 end # module
