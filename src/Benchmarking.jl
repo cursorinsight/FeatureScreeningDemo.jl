@@ -34,6 +34,24 @@ struct Measurement # TODO add parametric types
     metrics
 end
 
+function metrics(measurement::Measurement)
+    return measurement.metrics
+end
+
+function metric(measurement::Measurement, key::Symbol)
+    return metrics(measurement)[key]
+end
+
+function config(measurement::Measurement)
+    return measurement.config
+end
+
+function show(io::IO, measurement::Measurement)::Nothing
+    # TODO add config
+    print(io, "M$(measurement.metrics)")
+    return nothing
+end
+
 ###-----------------------------------------------------------------------------
 ### API
 ###-----------------------------------------------------------------------------
