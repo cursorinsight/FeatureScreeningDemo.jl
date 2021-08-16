@@ -9,3 +9,13 @@
 ###=============================================================================
 
 using Test
+
+using FeatureScreeningDemo.Utilities: upper_hull
+
+@testset "Utilities" begin
+
+    let points = [(1, 1), (2, 2), (3, 3)]
+        @test [[1, 1], [3, 3]] == upper_hull(points)
+    end
+
+end

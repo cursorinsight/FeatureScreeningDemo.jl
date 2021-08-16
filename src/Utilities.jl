@@ -15,6 +15,8 @@ import Base: NamedTuple
 using Base.Iterators: filter
 import Base.Iterators: product
 
+using LazySets: convex_hull
+
 ###=============================================================================
 ### API
 ###=============================================================================
@@ -42,6 +44,16 @@ function product(kvs::NamedTuple)
         # TODO (B)
         return merge(kvs, NamedTuple(ks, vs))
     end
+end
+
+# TODO
+function upper_hull(points::Vector)::Vector{<: Vector}
+    # TODO `convex_hull` works on vector of vectors.
+    points = [[coords...] for coords in points]
+    hull::Vector{<: Vector} = convex_hull(points)
+    (i::Int, j::Int) = (argmin(hull), argmax(hull))
+    # TODO this is how it works for us
+    return hull[[i:-1:begin; end:-1:j]]
 end
 
 end # module
