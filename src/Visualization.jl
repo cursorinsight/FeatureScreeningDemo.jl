@@ -10,13 +10,14 @@ module Visualization
 ### Exports
 ###=============================================================================
 
-export plot
+export plot, save
 
 ###=============================================================================
 ### Imports
 ###=============================================================================
 
 import PlotlyJS: plot, scatter
+using PlotlyJS: savefig
 using FeatureScreening.Types: FeatureSet, labels, features
 using FeatureScreeningDemo.Utilities: upper_hull
 using FeatureScreeningDemo.Benchmarking: Measurement, metric, config
@@ -60,28 +61,38 @@ function plot(measurements::Array{Measurement};
               y::Symbol,
               format::String = "",
               hull::Bool = true,
-              kwargs...
-             )
-    line_configs = unique(complement.(config.(measurements), group_by))
-    common_config_pairs = foldl(intersect, pairs.(line_configs))
-    netto_line_configs = map(line_configs) do config
-        return NamedTuple(filter(c -> !(c[1] in keys(common_config_pairs)),
-                                 pairs(config)))
+              kwargs...)
+
+    configs::Vector{<: NamedTuple} =
+        unique(complement.(config.(measurements), group_by))
+
+    common_config::NamedTuple =
+        foldl(intersect, pairs.(configs)) |> NamedTuple
+
+    configs = map(configs) do config
+        return filter(pairs(config)) do (key, value)
+            return !(key in keys(common_config))
+        end |> NamedTuple
     end
-    data_series = [select_data(measurements, lc) for lc in line_configs]
-    lines = [scatter(data_series[i];
-                     x,
-                     y,
-                     name = format_name(format, netto_line_configs[i]),
-                     kwargs...)
-             for i in eachindex(netto_line_configs)]
+
+    data_series::Vector{<: Vector} =
+        [select_data(measurements, config) for config in configs]
+
+    lines::Vector =
+        [let name::String = format_name(format, config)
+             scatter(data; x, y, name, kwargs...)
+         end
+         for (data, config) in zip(data_series, configs)]
+
     if hull
-        points = [[mm.metrics[x], mm.metrics[y]] for mm in vec(measurements)]
+        points::Vector{<: Vector} =
+            [metric.(m, [x, y]) for m in vec(measurements)]
         points = upper_hull(points)
         x = first.(points)
         y = last.(points)
         push!(lines, scatter(; x, y, name = "Envelope", line_width = 5))
     end
+
     return plot(lines)
 end
 
@@ -117,6 +128,10 @@ function select_data(measurements::Array{Measurement},
     return filter(measurements) do m
         return all(m.config[k] == criteria[k] for k in keys(criteria))
     end
+end
+
+function save(filename::AbstractString, plot; kwargs...)
+    return savefig(plot, filename; kwargs...)
 end
 
 end # module
