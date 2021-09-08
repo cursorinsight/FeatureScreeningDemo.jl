@@ -16,26 +16,21 @@ export benchmark, measure, Measurement
 ### Imports
 ###=============================================================================
 
-using UUIDs: UUID, uuid5
+import Base.Broadcast: broadcastable
+using UUIDs: UUID
 import Base: show
 using ProgressMeter: @showprogress
 using Base.Iterators: product
 using Dates: DateTime, now, format
-using FeatureScreeningDemo.Utilities: FILENAME_DATETIME_FORMAT
 using FeatureScreeningDemo.Utilities: print_json, parse_json
 using FeatureScreeningDemo.Utilities: @with_getters
+using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+import FeatureScreening.Utilities: save, load, id, created_at
+using OrderedCollections: OrderedDict
 
 ###=============================================================================
 ### Implementation
 ###=============================================================================
-
-function id(nt::C)::UUID where {C <: NamedTuple}
-    return uuid5(UUID(hash(nt)), "config")
-end
-
-function save(; kwargs...)::Function
-    return x -> save(x; kwargs...)
-end
 
 ###-----------------------------------------------------------------------------
 ### Measurement
@@ -44,6 +39,10 @@ end
 @with_getters struct Measurement
     config
     metrics
+end
+
+function broadcastable(measurement::Measurement)::Ref
+    return Ref(measurement)
 end
 
 function metric(measurement::Measurement, key::Symbol)
@@ -82,7 +81,8 @@ end
 
 # TODO
 function load(::Type{Measurement}, path::AbstractString)::Measurement
-    raw::Dict{Symbol, Any} = parse_json(path)
+    raw::Dict{Symbol, Any} =
+        parse_json(path; dicttype = OrderedDict{Symbol, Any})
     (raw_config_id::String, _ext) = splitext(basename(path))
     config = raw[:config] |> NamedTuple
     metrics = raw[:metrics] |> NamedTuple
@@ -103,11 +103,16 @@ end
     created_at::DateTime
 end
 
+function broadcastable(benchmark::Benchmark)::Ref
+    return Ref(benchmark)
+end
+
+# TODO maybe replace this with `Base.@kwdef`
 function Benchmark(f, inputs, config, measurements, description)
     return Benchmark(f, inputs, config, measurements, description, now())
 end
 
-# TODO this implementation assumes inputs isn;t empty
+# TODO this implementation assumes inputs isn't empty
 function id(benchmark::Benchmark)::UUID
     return benchmark_id(inputs(benchmark), config(benchmark))
 end
@@ -122,6 +127,24 @@ end
 
 isundef(::UndefInitializer) = true
 isundef(::Any) = false
+
+function load(::Type{Benchmark}, path::AbstractString)::Benchmark
+    info::NamedTuple =
+        parse_json("$path/info.json"; dicttype = OrderedDict{Symbol, Any}) |>
+        d -> (description = d[:description], config = NamedTuple(d[:config]))
+
+    measurements::Array{Measurement} = map(product(info[:config])) do config
+        return load(Measurement, "$path/measurements/$(id(config)).json")
+    end
+    return Benchmark(missing_f,
+                     (),
+                     info[:config],
+                     measurements,
+                     info[:description])
+end
+
+# TODO
+function missing_f end
 
 function save(benchmark::Benchmark; directory::AbstractString = ".")::Nothing
     path::String = joinpath(directory, filename(benchmark))
@@ -154,7 +177,7 @@ function benchmark(f::Function,
     to_be_persisted::Bool = !isempty(persist)
 
     configs = product(config)
-    _measurements = Array{Measurement}(undef, size(configs)...)
+    _measurements = Array{Measurement}(undef, size(configs))
     benchmark::Benchmark =
         Benchmark(f, inputs, config, _measurements, description)
 
@@ -162,8 +185,7 @@ function benchmark(f::Function,
         save(benchmark; directory = persist)
     end
 
-    configs = (CartesianIndices(configs) .=> configs)
-    @showprogress "Benchmark $(description)" for (i, config) in configs
+    @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
         measurements(benchmark)[i] = measure(f, inputs; config)
         if to_be_persisted
             directory = "$(path(benchmark; directory = persist))/measurements"

@@ -37,7 +37,7 @@ function plot(feature_set::FeatureSet{L}) where {L}
 
     # TODO never use Plotly again
     return plot([let x = [fill.(1:size(feature_set, 2), length(idxs))...;],
-                     y = reshape(features(feature_set[idxs, :]), :)
+                     y = vec(features(feature_set[idxs, :]))
                      scatter(x = x, y = y, name = label, mode = "markers")
                  end
                  for (label, idxs) in sort!(collect(idxs); by = first)])

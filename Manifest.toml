@@ -189,12 +189,12 @@ uuid = "fa42c844-2597-5d31-933b-ebd51ab2693f"
 version = "0.2.0"
 
 [[FeatureScreening]]
-deps = ["DecisionTree", "HDF5", "IterTools", "Logging", "ProgressMeter", "Random", "Statistics", "UUIDs"]
-git-tree-sha1 = "1adb7372321a98bbcadfe4e54a46c47da1c25f00"
+deps = ["Dates", "DecisionTree", "HDF5", "Logging", "ProgressMeter", "Random", "Statistics", "UUIDs"]
+git-tree-sha1 = "9c13d5eb1b045d19d9f019c00cc29aa60bf1b039"
 repo-rev = "dev"
 repo-url = "ssh://git@github.com/cursorinsight/FeatureScreening.jl"
 uuid = "81355843-3c2b-48ff-a0b2-a7573f067e8f"
-version = "0.8.0"
+version = "0.11.0"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -278,11 +278,6 @@ deps = ["CRlibm", "FastRounding", "LinearAlgebra", "Markdown", "Random", "Recipe
 git-tree-sha1 = "4902a5ff073d6977e33baad4e8d5c9a77e26eabf"
 uuid = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 version = "0.18.2"
-
-[[IterTools]]
-git-tree-sha1 = "05110a2ab1fc5f932622ffea2a003221f4782c18"
-uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.3.0"
 
 [[IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"

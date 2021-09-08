@@ -18,9 +18,10 @@ using FeatureScreeningDemo.CommandLine: Settings, @cmd_str, @add_arg_table!
 #
 # Command execution imports
 using FeatureScreening: load, FeatureSet
+using FeatureScreening.Utilities: Maybe
 using FeatureScreeningDemo.Metrics: goodness
 using FeatureScreeningDemo.Benchmarking: benchmark
-using FeatureScreeningDemo.Utilities: split
+using FeatureScreeningDemo.Utilities: split, @pwd_str
 
 ###=============================================================================
 ### Command API
@@ -28,42 +29,101 @@ using FeatureScreeningDemo.Utilities: split
 
 function compile(::Type{Settings}, ::cmd"benchmark")::Settings
     return @add_arg_table! Settings(prog = "benchmark") begin
-        "config"
+        "--config"
+        help = "path of the benchmark configuration"
+        arg_type = String
+        required = false
+        default = ""
+
+        "--output"
+        help = "directory to store the results"
+        arg_type = String
+        required = false
+
+        "train"
+        help = "path of training feature set"
         arg_type = String
         required = true
+
+        "test"
+        help = "path of testing feature set"
+        arg_type = String
+        required = false
     end
 end
 
 function execute(command::cmd"benchmark")::Integer
-    config::NamedTuple = get_config(command)
+    arguments::NamedTuple = get_arguments(command)
 
-    @info "Start to benchmark" config
+    @info "Start to benchmark" arguments
 
-    @info "Load feature set" config[:feature_set]
-    feature_set::FeatureSet = load(FeatureSet, config[:feature_set])
+    train::FeatureSet = load(FeatureSet, arguments[:train])
 
-    (train::FeatureSet, test::FeatureSet) =
-        split(feature_set; size = config[:train_size])
+    (train, test::FeatureSet) =
+        if has_test_set(arguments)
+            (train, load(FeatureSet, arguments[:test]))
+        else
+            split(train; size = arguments[:config][:train_size])
+        end
 
-    @info "Benchmark" config[:config]
+    @info "Benchmark" arguments[:config][:config]
     benchmark(goodness,
               (train, test);
-              config = config[:config],
-              persist = config[:output])
+              config = arguments[:config][:config],
+              persist = arguments[:output])
 
     return 0
 end
 
 # TODO maybe add some structure, normalize like names and types of indexable
-# things here
-function get_config(command::cmd"benchmark")::NamedTuple
-    cwd::String = joinpath(pwd(), dirname(command["config"]))
-    config::NamedTuple = load(NamedTuple, command["config"])
-    feature_set::String = joinpath(cwd, config[:feature_set])
-    train_size::Real = get(config, :train_size, 0.5)
-    output::String = joinpath(cwd, get(config, :output, "benchmarks"))
-    config = NamedTuple(config[:config])
-    return (; feature_set, train_size, config, output)
+# things here, add some schema maybe
+function get_arguments(command::cmd"benchmark")::NamedTuple
+    train::String = command["train"]
+    train = pwd"$train"
+    test::Maybe{String} =
+        let test = command["test"]
+            if !(test isa Nothing)
+                pwd"$test"
+            else
+                nothing
+            end
+        end
+
+    config::NamedTuple = load_config(command)
+    output::String =
+        let output = command["output"]
+            if !(output isa Nothing)
+                pwd"$output"
+            else
+                "benchmarks"
+            end
+        end
+
+    return (; train, test, config, output)
+end
+
+function has_test_set(arguments::NamedTuple)::Bool
+    return has_test_set(arguments[:test])
+end
+
+function has_test_set(::Nothing)::Bool
+    return false
+end
+
+# TODO maybe add some more checker, like is that a valid feature set?
+function has_test_set(path::AbstractString)::Bool
+    return isfile(path)
+end
+
+const DEFAULT_CONFIG = (; train_size = 0.8, config = (;))
+
+function load_config(command::cmd"benchmark")::NamedTuple
+    config::NamedTuple = if ispath(command["config"])
+        load(NamedTuple, command["config"])
+    else
+        (;)
+    end
+    return merge(DEFAULT_CONFIG, config)
 end
 
 end # module

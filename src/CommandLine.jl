@@ -17,7 +17,8 @@ export main
 ###=============================================================================
 
 using Base: @kwdef
-import Base: show, getindex
+import Base: show, getindex, get
+import FeatureScreeningDemo.Utilities: parse
 using ArgParse: @add_arg_table!, ArgParseSettings, parse_args
 
 ###=============================================================================
@@ -53,7 +54,19 @@ macro cmd_str(command)
 end
 
 function getindex(command::Command, key::String)
-    return command.arguments[key]
+    return getindex(command.arguments, key)
+end
+
+function get(command::Command, key::String, default)
+    return get(command.arguments, key, default)
+end
+
+function name(::Command{command})::String where {command}
+    return String(command)
+end
+
+function name(::Type{Command{command}})::String where {command}
+    return String(command)
 end
 
 ##------------------------------------------------------------------------------
@@ -61,6 +74,41 @@ end
 ##------------------------------------------------------------------------------
 
 const Settings = ArgParseSettings
+
+###-----------------------------------------------------------------------------
+### Main
+###-----------------------------------------------------------------------------
+
+# TODO remove or revamp
+# TODO rename or something, this function returns strings
+function COMMANDS()::Vector{String}
+    return [m.sig.types[2].parameters |> only |> string
+            for m in methods(execute)
+            if isconcretetype(m.sig)] |> sort
+end
+
+function main(arguments::Vector{String})
+    try
+        arguments |> parse(Command) |> execute |> exit
+    catch exception
+        @error "Something went wrong" exception
+        rethrow(exception)
+        # TODO replace with some built-in function
+        println("Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
+        exit(1)
+    end
+end
+
+function parse(::Type{Command}, raw_arguments::Vector{String})::Command
+    @assert !isempty(raw_arguments)
+    (raw_command::String, raw_arguments...) = raw_arguments
+    @assert raw_command in COMMANDS()
+    command = Command(raw_command)
+    settings::Settings = compile(Settings, command)
+    arguments = parse_args(raw_arguments, settings)
+    merge!(command.arguments, arguments)
+    return command
+end
 
 ###-----------------------------------------------------------------------------
 ### Command API
@@ -74,25 +122,6 @@ end
 function execute(command::Command{C}) where{C}
     @error "Missing `execute` method for Command{$C}."
     throw(MethodError(execute, (Command{C},)))
-end
-
-###-----------------------------------------------------------------------------
-### Main
-###-----------------------------------------------------------------------------
-
-# TODO exception handling
-function main(raw_arguments::Vector{String})
-    command::Command = parse(Command, raw_arguments)
-    execute(command)::Int |> exit
-end
-
-function parse(::Type{Command}, arguments::Vector{String})::Command
-    @assert !isempty(arguments)
-    (cmd::String, args::Vector{String}) = (arguments[1], arguments[2:end])
-    command::Command = Command(cmd)
-    settings::Settings = compile(Settings, command)
-    merge!(command.arguments, parse_args(args, settings))
-    return command
 end
 
 end # module
