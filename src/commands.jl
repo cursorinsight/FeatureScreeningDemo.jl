@@ -10,3 +10,4 @@
 
 include("commands/example.jl")
 include("commands/benchmark.jl")
+include("commands/screen.jl")

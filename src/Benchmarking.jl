@@ -162,7 +162,7 @@ function benchmark(f::Function,
         save(benchmark; directory = persist)
     end
 
-    configs = (CartesianIndices(configs) .=> configs)
+    configs = zip(CartesianIndices(configs), configs)
     @showprogress "Benchmark $(description)" for (i, config) in configs
         measurements(benchmark)[i] = measure(f, inputs; config)
         if to_be_persisted
