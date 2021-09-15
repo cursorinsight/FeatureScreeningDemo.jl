@@ -17,7 +17,7 @@ export main
 ###=============================================================================
 
 using Base: @kwdef
-import Base: show, getindex
+import Base: show, getindex, get
 using ArgParse: @add_arg_table!, ArgParseSettings, parse_args
 
 ###=============================================================================
@@ -53,7 +53,11 @@ macro cmd_str(command)
 end
 
 function getindex(command::Command, key::String)
-    return command.arguments[key]
+    return getindex(command.arguments, key)
+end
+
+function get(command::Command, key::String, default)
+    return get(command.arguments, key, default)
 end
 
 ##------------------------------------------------------------------------------

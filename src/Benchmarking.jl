@@ -16,26 +16,19 @@ export benchmark, measure, Measurement
 ### Imports
 ###=============================================================================
 
-using UUIDs: UUID, uuid5
+using UUIDs: UUID
 import Base: show
 using ProgressMeter: @showprogress
 using Base.Iterators: product
 using Dates: DateTime, now, format
-using FeatureScreeningDemo.Utilities: FILENAME_DATETIME_FORMAT
 using FeatureScreeningDemo.Utilities: print_json, parse_json
 using FeatureScreeningDemo.Utilities: @with_getters
+using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+import FeatureScreening.Utilities: save, load, id, created_at
 
 ###=============================================================================
 ### Implementation
 ###=============================================================================
-
-function id(nt::C)::UUID where {C <: NamedTuple}
-    return uuid5(UUID(hash(nt)), "config")
-end
-
-function save(; kwargs...)::Function
-    return x -> save(x; kwargs...)
-end
 
 ###-----------------------------------------------------------------------------
 ### Measurement
@@ -103,11 +96,12 @@ end
     created_at::DateTime
 end
 
+# TODO maybe replace this with `Base.@kwdef`
 function Benchmark(f, inputs, config, measurements, description)
     return Benchmark(f, inputs, config, measurements, description, now())
 end
 
-# TODO this implementation assumes inputs isn;t empty
+# TODO this implementation assumes inputs isn't empty
 function id(benchmark::Benchmark)::UUID
     return benchmark_id(inputs(benchmark), config(benchmark))
 end
@@ -154,7 +148,7 @@ function benchmark(f::Function,
     to_be_persisted::Bool = !isempty(persist)
 
     configs = product(config)
-    _measurements = Array{Measurement}(undef, size(configs)...)
+    _measurements = Array{Measurement}(undef, size(configs))
     benchmark::Benchmark =
         Benchmark(f, inputs, config, _measurements, description)
 
@@ -162,8 +156,7 @@ function benchmark(f::Function,
         save(benchmark; directory = persist)
     end
 
-    configs = zip(CartesianIndices(configs), configs)
-    @showprogress "Benchmark $(description)" for (i, config) in configs
+    @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
         measurements(benchmark)[i] = measure(f, inputs; config)
         if to_be_persisted
             directory = "$(path(benchmark; directory = persist))/measurements"

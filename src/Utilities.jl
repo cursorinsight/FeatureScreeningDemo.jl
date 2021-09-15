@@ -34,6 +34,11 @@ using Base: Fix1
 using OrderedCollections: OrderedDict
 using FeatureScreening.Types: FeatureSet, labels
 
+import Base: split
+
+using Base.Meta: parse
+using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+
 ###=============================================================================
 ### API
 ###=============================================================================
@@ -77,8 +82,6 @@ function upper_hull(points::Vector)::Vector{<: Vector}
     return hull[[i:-1:begin; end:-1:j]]
 end
 
-const FILENAME_DATETIME_FORMAT = "YYYYmmdd-HHMMSS"
-
 function now2(datetime = now(), format = FILENAME_DATETIME_FORMAT)::String
     return _format(datetime, format)
 end
@@ -108,7 +111,17 @@ end
 
 # TODO
 function load(::Type{NamedTuple}, path::AbstractString)::NamedTuple
-    return parse_json(path; dicttype = OrderedDict{Symbol, Any}) |> NamedTuple
+    @assert ispath(path)
+    kvs = parse_json(path; dicttype = OrderedDict{Symbol, Any})
+    return convert_rec(NamedTuple, kvs)
+end
+
+function convert_rec(::Type{NamedTuple}, kvs::AbstractDict)::NamedTuple
+    return NamedTuple(k => convert_rec(NamedTuple, v) for (k, v) in kvs)
+end
+
+function convert_rec(::Type{NamedTuple}, x)
+    return x
 end
 
 macro with_getters(expr)
@@ -123,6 +136,12 @@ macro with_getters(expr)
         $expr
         $(getter_functions...)
     end |> esc
+end
+
+macro getter(expr)
+    @capture(expr, f_(::T_))
+    getter::Expr = getter_fun_expr(T, f)
+    return :($getter) |> esc
 end
 
 function is_private_field(field::Symbol)::Bool
@@ -193,6 +212,10 @@ function split(feature_set::T;
         end
 
     return (feature_set[train_idxs, :], feature_set[test_idxs, :])
+end
+
+macro path_str(str::String)
+    return Expr(:call, :normpath, esc(parse("\"$str\"")))
 end
 
 end # module
