@@ -8,7 +8,8 @@
 ### Imports
 ###=============================================================================
 
-using FeatureScreeningDemo.Benchmarking: benchmark, Benchmark, measurements, save
+using FeatureScreeningDemo.Benchmarking: benchmark, Benchmark, measurements
+using FeatureScreeningDemo.Benchmarking: save, load
 using FeatureScreeningDemo.Benchmarking: Measurement, metric
 
 ###=============================================================================
@@ -56,5 +57,14 @@ using FeatureScreeningDemo.Benchmarking: Measurement, metric
         measurement_files2::Vector{String} = readdir(measurement_dir2)
         @test_broken length(measurement_files2) == 10
         @test_broken measurement_files == measurement_files2
+    end
+
+    let benchmark = load(Benchmark, benchmark_dir)
+        @test benchmark isa Benchmark
+        @test_broken benchmark.__f == my_sleep
+        @test_broken benchmark.inputs == (0.01,)
+        @test all(benchmark.measurements .== ms)
+        @test benchmark.description == ""
+        @warn "asd" benchmark.measurements
     end
 end

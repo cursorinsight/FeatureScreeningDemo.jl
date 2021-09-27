@@ -16,6 +16,7 @@ export benchmark, measure, Measurement
 ### Imports
 ###=============================================================================
 
+import Base.Broadcast: broadcastable
 using UUIDs: UUID
 import Base: show
 using ProgressMeter: @showprogress
@@ -25,6 +26,7 @@ using FeatureScreeningDemo.Utilities: print_json, parse_json
 using FeatureScreeningDemo.Utilities: @with_getters
 using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
 import FeatureScreening.Utilities: save, load, id, created_at
+using OrderedCollections: OrderedDict
 
 ###=============================================================================
 ### Implementation
@@ -37,6 +39,10 @@ import FeatureScreening.Utilities: save, load, id, created_at
 @with_getters struct Measurement
     config
     metrics
+end
+
+function broadcastable(measurement::Measurement)::Ref
+    return Ref(measurement)
 end
 
 function metric(measurement::Measurement, key::Symbol)
@@ -75,7 +81,8 @@ end
 
 # TODO
 function load(::Type{Measurement}, path::AbstractString)::Measurement
-    raw::Dict{Symbol, Any} = parse_json(path)
+    raw::Dict{Symbol, Any} =
+        parse_json(path; dicttype = OrderedDict{Symbol, Any})
     (raw_config_id::String, _ext) = splitext(basename(path))
     config = raw[:config] |> NamedTuple
     metrics = raw[:metrics] |> NamedTuple
@@ -94,6 +101,10 @@ end
     measurements::Array{<: Measurement}
     description::String
     created_at::DateTime
+end
+
+function broadcastable(benchmark::Benchmark)::Ref
+    return Ref(benchmark)
 end
 
 # TODO maybe replace this with `Base.@kwdef`
@@ -116,6 +127,24 @@ end
 
 isundef(::UndefInitializer) = true
 isundef(::Any) = false
+
+function load(::Type{Benchmark}, path::AbstractString)::Benchmark
+    info::NamedTuple =
+        parse_json("$path/info.json"; dicttype = OrderedDict{Symbol, Any}) |>
+        d -> (description = d[:description], config = NamedTuple(d[:config]))
+
+    measurements::Array{Measurement} = map(product(info[:config])) do config
+        return load(Measurement, "$path/measurements/$(id(config)).json")
+    end
+    return Benchmark(missing_f,
+                     (),
+                     info[:config],
+                     measurements,
+                     info[:description])
+end
+
+# TODO
+function missing_f end
 
 function save(benchmark::Benchmark; directory::AbstractString = ".")::Nothing
     path::String = joinpath(directory, filename(benchmark))

@@ -77,7 +77,7 @@ end
 # TODO maybe add some structure, normalize like names and types of indexable
 # things here
 function get_arguments(command::cmd"benchmark")::NamedTuple
-    cwd::String = joinpath(pwd(), dirname(command["config"]))
+    cwd::String = pwd()
     train::String = command["train"]
     train = path"$cwd/$train"
     # TODO add some check here
