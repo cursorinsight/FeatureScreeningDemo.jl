@@ -99,8 +99,9 @@ function parse(::Type{Command}, arguments::Vector{String})::Command
         compile!(settings[cmd], Command(cmd))
     end
     parsed_args = parse_args(arguments, settings)
-    command::Command = Command(parsed_args["%COMMAND%"])
-    merge!(command.arguments, parsed_args)
+    cmd = parsed_args["%COMMAND%"]
+    command::Command = Command(cmd)
+    merge!(command.arguments, parsed_args[cmd])
     return command
 end
 
