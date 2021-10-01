@@ -1,7 +1,7 @@
 name = "FeatureScreeningDemo"
 uuid = "41e3a46c-835a-4a29-936f-279c1c707219"
 authors = ["Cursor Insight <info@cursorinsight.com>"]
-version = "0.3.0"
+version = "0.4.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"

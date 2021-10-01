@@ -18,7 +18,7 @@ export main
 
 using Base: @kwdef
 import Base: show, getindex, get
-using ArgParse: @add_arg_table!, ArgParseSettings, parse_args
+using ArgParse: @add_arg_table!, add_arg_table!, ArgParseSettings, parse_args
 
 ###=============================================================================
 ### Implementation
@@ -39,6 +39,8 @@ end
 function Command(command::String)
     return Command{Symbol(command)}()
 end
+
+command_string(::Type{Command{command}}) where {command} = string(command)
 
 function Base.show(io::IO, command::Command{C}) where {C}
     println(io, "Command{$C}:")
@@ -70,7 +72,7 @@ const Settings = ArgParseSettings
 ### Command API
 ###-----------------------------------------------------------------------------
 
-function compile(::Type{Settings}, command::Command{C}) where {C}
+function compile!(::Settings, command::Command{C}) where {C}
     @error "Missing `compile` method for Command{$C}."
     throw(MethodError(compile, (Type{Settings}, Command{C})))
 end
@@ -91,12 +93,21 @@ function main(raw_arguments::Vector{String})
 end
 
 function parse(::Type{Command}, arguments::Vector{String})::Command
-    @assert !isempty(arguments)
-    (cmd::String, args::Vector{String}) = (arguments[1], arguments[2:end])
-    command::Command = Command(cmd)
-    settings::Settings = compile(Settings, command)
-    merge!(command.arguments, parse_args(args, settings))
+    settings = Settings(prog = PROGRAM_FILE)
+    for cmd in command_strings()
+        add_arg_table!(settings, cmd, Dict(:action => :command))
+        compile!(settings[cmd], Command(cmd))
+    end
+    parsed_args = parse_args(arguments, settings)
+    command::Command = Command(parsed_args["%COMMAND%"])
+    merge!(command.arguments, parsed_args)
     return command
+end
+
+function command_strings()::Vector{String}
+    return [command_string(m.sig.types[2])
+            for m in methods(execute)
+            if isconcretetype(m.sig)]
 end
 
 end # module

@@ -12,7 +12,7 @@ module CmdUpgrade
 ###=============================================================================
 
 ### Command API
-import FeatureScreeningDemo.CommandLine: compile, execute
+import FeatureScreeningDemo.CommandLine: compile!, execute
 
 ## Command compilation
 using FeatureScreeningDemo.CommandLine: Settings, @cmd_str, @add_arg_table!
@@ -25,8 +25,8 @@ using FeatureScreeningDemo.Utilities: @path_str
 ### Command API
 ###=============================================================================
 
-function compile(::Type{Settings}, ::cmd"upgrade")::Settings
-    return @add_arg_table! Settings(prog = "upgrade") begin
+function compile!(settings::Settings, ::cmd"upgrade")::Settings
+    return @add_arg_table! settings begin
         "path"
         help = "path of the feature set"
         arg_type = String
