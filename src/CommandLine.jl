@@ -18,7 +18,7 @@ export main
 
 using Base: @kwdef
 import Base: show, getindex, get
-using ArgParse: @add_arg_table!, add_arg_table!, ArgParseSettings, parse_args
+using ArgParse: @add_arg_table!, ArgParseSettings, parse_args
 
 ###=============================================================================
 ### Implementation
@@ -39,8 +39,6 @@ end
 function Command(command::String)
     return Command{Symbol(command)}()
 end
-
-command_string(::Type{Command{command}}) where {command} = string(command)
 
 function Base.show(io::IO, command::Command{C}) where {C}
     println(io, "Command{$C}:")
@@ -72,7 +70,7 @@ const Settings = ArgParseSettings
 ### Command API
 ###-----------------------------------------------------------------------------
 
-function compile!(::Settings, command::Command{C}) where {C}
+function compile(::Type{Settings}, command::Command{C}) where {C}
     @error "Missing `compile` method for Command{$C}."
     throw(MethodError(compile, (Type{Settings}, Command{C})))
 end
@@ -93,22 +91,23 @@ function main(raw_arguments::Vector{String})
 end
 
 function parse(::Type{Command}, arguments::Vector{String})::Command
-    settings = Settings(prog = PROGRAM_FILE)
-    for cmd in command_strings()
-        add_arg_table!(settings, cmd, Dict(:action => :command))
-        compile!(settings[cmd], Command(cmd))
+    if isempty(arguments) || arguments[1] ∉ command_strings()
+        println("Usage: $(PROGRAM_FILE) $(
+            join(command_strings(), '|')) [-h] ...")
+        exit(1)
     end
-    parsed_args = parse_args(arguments, settings)
-    cmd = parsed_args["%COMMAND%"]
+
+    (cmd::String, args::Vector{String}) = (arguments[1], arguments[2:end])
     command::Command = Command(cmd)
-    merge!(command.arguments, parsed_args[cmd])
+    settings::Settings = compile(Settings, command)
+    merge!(command.arguments, parse_args(args, settings))
     return command
 end
 
 function command_strings()::Vector{String}
-    return [command_string(m.sig.types[2])
+    return [m.sig.types[2].parameters |> only |> string
             for m in methods(execute)
-            if isconcretetype(m.sig)]
+            if isconcretetype(m.sig)] |> sort
 end
 
 end # module

@@ -11,7 +11,7 @@ module CmdBenchmark
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: compile!, execute
+import FeatureScreeningDemo.CommandLine: compile, execute
 
 # Command compilation imports
 using FeatureScreeningDemo.CommandLine: Settings, @cmd_str, @add_arg_table!
@@ -26,8 +26,8 @@ using FeatureScreeningDemo.Utilities: split, @path_str
 ### Command API
 ###=============================================================================
 
-function compile!(settings::Settings, ::cmd"benchmark")::Settings
-    return @add_arg_table! settings begin
+function compile(::Type{Settings}, ::cmd"benchmark")::Settings
+    return @add_arg_table! Settings(prog = "benchmark") begin
         "--config"
         help = "path of the benchmark configuration"
         arg_type = String
