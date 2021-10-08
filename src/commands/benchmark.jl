@@ -81,8 +81,10 @@ function get_arguments(command::cmd"benchmark")::NamedTuple
     train::String = command["train"]
     train = path"$cwd/$train"
     # TODO add some check here
-    test::String = command["test"]
-    test = path"$cwd/$test"
+    test::Union{String, Nothing} = command["test"]
+    if test !== nothing
+        test = path"$cwd/$test"
+    end
 
     config::NamedTuple = load_config(command)
     output::String = get(config, :output, "benchmarks")
@@ -92,7 +94,7 @@ function get_arguments(command::cmd"benchmark")::NamedTuple
 end
 
 function has_test_set(arguments::NamedTuple)::Bool
-    return !isfile(arguments[:test])
+    return arguments[:test] !== nothing && isfile(arguments[:test])
 end
 
 const DEFAULT_CONFIG = (; train_size = 0.8, benchmark = (;))
