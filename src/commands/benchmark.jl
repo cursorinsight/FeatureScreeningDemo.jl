@@ -87,7 +87,8 @@ function get_arguments(command::cmd"benchmark")::NamedTuple
     end
 
     config::NamedTuple = load_config(command)
-    output::String = get(config, :output, "benchmarks")
+    output::String = something(command["output"],
+                               get(config, :output, "benchmarks"))
     output = path"$cwd/$output"
 
     return (; train, test, config, output)
