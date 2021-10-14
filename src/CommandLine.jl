@@ -128,8 +128,9 @@ function execute(command::Command{C}) where{C}
 end
 
 # TODO rename maybe
-function handle_exception(::Exception)::Int
+function handle_exception(exception::Exception)::Int
     usage()
+    rethrow(exception) # TODO remove whenever we have logging
     return 1
 end
 
