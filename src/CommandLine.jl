@@ -91,23 +91,26 @@ function main(arguments::Vector{String})
     try
         arguments |> parse(Command) |> execute |> exit
     catch exception
-        @error "Something went wrong" exception
-        rethrow(exception)
-        # TODO replace with some built-in function
-        println("Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
-        exit(1)
+        exception |> handle_exception |> exit
     end
 end
 
 function parse(::Type{Command}, raw_arguments::Vector{String})::Command
     @assert !isempty(raw_arguments)
     (raw_command::String, raw_arguments...) = raw_arguments
-    @assert raw_command in COMMANDS()
+    # TODO this assert handles the only "--help" argument as an unknown command
+    @assert raw_command in COMMANDS() "Unknown command: $raw_command"
     command = Command(raw_command)
     settings::Settings = compile(Settings, command)
     arguments = parse_args(raw_arguments, settings)
     merge!(command.arguments, arguments)
     return command
+end
+
+function usage(io::IO = stderr)::Nothing
+    # TODO replace with some built-in function
+    println("Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
+    return nothing
 end
 
 ###-----------------------------------------------------------------------------
@@ -122,6 +125,12 @@ end
 function execute(command::Command{C}) where{C}
     @error "Missing `execute` method for Command{$C}."
     throw(MethodError(execute, (Command{C},)))
+end
+
+# TODO rename maybe
+function handle_exception(::Exception)::Int
+    usage()
+    return 1
 end
 
 end # module
