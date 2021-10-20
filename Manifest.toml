@@ -190,11 +190,11 @@ version = "0.2.0"
 
 [[FeatureScreening]]
 deps = ["Dates", "DecisionTree", "HDF5", "Logging", "ProgressMeter", "Random", "Statistics", "UUIDs"]
-git-tree-sha1 = "9c13d5eb1b045d19d9f019c00cc29aa60bf1b039"
+git-tree-sha1 = "91f336ee77f43323cc75f5f61901d88871314908"
 repo-rev = "dev"
 repo-url = "ssh://git@github.com/cursorinsight/FeatureScreening.jl"
 uuid = "81355843-3c2b-48ff-a0b2-a7573f067e8f"
-version = "0.11.0"
+version = "0.11.1"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
