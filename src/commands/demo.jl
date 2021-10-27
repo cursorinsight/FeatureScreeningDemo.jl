@@ -4,17 +4,17 @@
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
 
-module CmdExample
+module CmdDemo
 
 ###=============================================================================
 ### Imports
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: compile, execute
+import FeatureScreeningDemo.CommandLine: description, compile, execute
 
 # Command compilation imports
-using FeatureScreeningDemo.CommandLine: Settings, @cmd_str, @add_arg_table!
+using FeatureScreeningDemo.CommandLine: @cmd_str, Settings, @settings
 
 # Command execution imports
 using FeatureScreeningDemo.Utilities: now2
@@ -26,12 +26,23 @@ using FeatureScreeningDemo.Metrics: goodness
 ### Command API
 ###=============================================================================
 
-function compile(::Type{Settings}, ::cmd"example")::Settings
-    return @add_arg_table! Settings(prog = "example") begin
-    end
+function description(::cmd"demo")::String
+    return """
+    This command demonstrates most of the features of this demo application;
+      1. generate a feature set,
+      2. screen that,
+      3. run benchmarks on
+        - the original feature set,
+        - the hypothetical best subset of the original feature set and
+        - the screened subset.
+    """
 end
 
-function execute(::cmd"example")::Integer
+function compile(::Type{Settings}, ::cmd"demo")::Settings
+    return @settings
+end
+
+function execute(::cmd"demo")::Integer
     return main()
 end
 
@@ -46,32 +57,31 @@ const DEFAULT_SCREEN_CONFIG =
      min_samples_leaf = 1,
      min_samples_split = 2,
      min_purity_increase = 0.1,
-     n_trees = 100)
+     n_trees = 10)
 
 const DEFAULT_TEST_CONFIG =
-    (n_subfeatures = 16,
+    (n_subfeatures = 8,
      partial_sampling = 1.0,
      max_depth = -1,
      min_samples_leaf = 1,
      min_samples_split = 2,
-     min_purity_increase = [0.0, 0.01, 0.02, 0.04, 0.08, 0.16],
-     n_trees = [25, 50, 100, 200, 400])
+     min_purity_increase = [0.0, 0.04, 0.16],
+     n_trees = [2, 4, 8, 16])
 
 # TODO create proper configuration from commandline and move this function into
-# the `execute` function directry
-# TODO replace this randomly generated feature set with maybe a "synthetic data"
+# the `execute` function directly
 function main(;
               directory::AbstractString = "demo.$(now2())",
 
               # feature set arguments
-              no_samples::Integer = 300,
-              no_features::Integer = 256,
+              no_samples::Integer = 100,
+              no_features::Integer = 128,
               label_count::Integer = 10,
 
               # screen arguments
-              reduced_size::Integer = 32,
-              step_size::Integer = 32,
-              config = DEFAULT_SCREEN_CONFIG,
+              reduced_size::Integer = 16,
+              step_size::Integer = 8,
+              screen_config = DEFAULT_SCREEN_CONFIG,
 
               # benchmark arguments
               test_config = DEFAULT_TEST_CONFIG
@@ -89,7 +99,8 @@ function main(;
 
     # Screen
     @info "Screen"
-    screened::FeatureSet = screen(all; reduced_size, step_size, config)
+    screened::FeatureSet =
+        screen(all; reduced_size, step_size, config = screen_config)
     test_screened::FeatureSet = test[:, names(screened)]
 
     let config::NamedTuple = test_config

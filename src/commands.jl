@@ -8,6 +8,6 @@
 ### Imports
 ###=============================================================================
 
-include("commands/example.jl")
+include("commands/demo.jl")
 include("commands/benchmark.jl")
 include("commands/screen.jl")

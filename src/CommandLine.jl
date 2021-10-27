@@ -102,6 +102,9 @@ function parse(::Type{Command}, raw_arguments::Vector{String})::Command
     @assert raw_command in COMMANDS() "Unknown command: $raw_command"
     command = Command(raw_command)
     settings::Settings = compile(Settings, command)
+    settings.prog = name(command)
+    settings.preformatted_description = true
+    settings.description = description(command)
     arguments = parse_args(raw_arguments, settings)
     merge!(command.arguments, arguments)
     return command
@@ -116,6 +119,10 @@ end
 ###-----------------------------------------------------------------------------
 ### Command API
 ###-----------------------------------------------------------------------------
+
+function description(::Command)::String
+    return ""
+end
 
 function compile(::Type{Settings}, command::Command{C}) where {C}
     @error "Missing `compile` method for Command{$C}."
@@ -132,6 +139,21 @@ function handle_exception(exception::Exception)::Int
     usage()
     rethrow(exception) # TODO remove whenever we have logging
     return 1
+end
+
+# TODO rename
+macro settings end
+
+macro settings()
+    return :(@add_arg_table! Settings())
+end
+
+macro settings(arg_table)
+    return :(@add_arg_table! Settings() $arg_table)
+end
+
+macro settings(settings, arg_table)
+    return :(@add_arg_table! $settings $arg_table)
 end
 
 end # module

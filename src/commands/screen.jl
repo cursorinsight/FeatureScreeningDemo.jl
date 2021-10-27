@@ -11,10 +11,10 @@ module CmdScreen
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: compile, execute
+import FeatureScreeningDemo.CommandLine: description, compile, execute
 
 # Command compilation imports
-using FeatureScreeningDemo.CommandLine: Settings, @cmd_str, @add_arg_table!
+using FeatureScreeningDemo.CommandLine: @cmd_str, Settings, @settings
 #
 # Command execution imports
 using FeatureScreening: load, FeatureSet, screen, save, names
@@ -24,8 +24,13 @@ using FeatureScreeningDemo.Utilities: split, @path_str
 ### Command API
 ###=============================================================================
 
+function description(::cmd"screen")::String
+    return """
+    """
+end
+
 function compile(::Type{Settings}, ::cmd"screen")::Settings
-    return @add_arg_table! Settings(prog = "screen") begin
+    return @settings begin
         "--config"
         help = "path of the screen configuration"
         arg_type = String
