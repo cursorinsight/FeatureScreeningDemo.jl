@@ -16,16 +16,35 @@ export benchmark, measure, Measurement
 ### Imports
 ###=============================================================================
 
-import Base.Broadcast: broadcastable
-using UUIDs: UUID
-import Base: show
-using ProgressMeter: @showprogress
-using Base.Iterators: product
-using Dates: DateTime, now, format
-using FeatureScreeningDemo.Utilities: print_json, parse_json
+# Measurement
 using FeatureScreeningDemo.Utilities: @with_getters
-using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+
+# Measurement Base API
+import Base.Broadcast: broadcastable
+import Base: show
+
+# Measurement File API
+import FeatureScreening.Utilities: save, load
+using FeatureScreening.Utilities: id
+using FeatureScreeningDemo.Utilities: print_json, parse_json
+using OrderedCollections: OrderedDict
+
+# Benchmark
+using FeatureScreeningDemo.Utilities: @with_getters
+using UUIDs: UUID
+using Dates: DateTime, format
+using ProgressMeter: @showprogress
+
+# Benchmark Base API
+import Base.Broadcast: broadcastable
+using Base.Iterators: product
+
+# Benchmark File API
 import FeatureScreening.Utilities: save, load, id, created_at
+using Base.Iterators: product
+using Dates: now
+using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+using FeatureScreeningDemo.Utilities: print_json, parse_json
 using OrderedCollections: OrderedDict
 
 ###=============================================================================
@@ -36,42 +55,45 @@ using OrderedCollections: OrderedDict
 ### Measurement
 ###-----------------------------------------------------------------------------
 
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/20
 @with_getters struct Measurement
     config
     metrics
 end
 
-function broadcastable(measurement::Measurement)::Ref
-    return Ref(measurement)
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/19
+# This is sort of a constructor for `Measurement`
+function measure(f::Function, inputs::Tuple; config)
+    metrics = f(inputs...; config)
+    return Measurement(config, metrics)
 end
 
 function metric(measurement::Measurement, key::Symbol)
     return metrics(measurement)[key]
 end
 
+##------------------------------------------------------------------------------
+## Base API
+##------------------------------------------------------------------------------
+
+function broadcastable(measurement::Measurement)::Ref
+    return Ref(measurement)
+end
+
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/21
 function show(io::IO, measurement::Measurement)::Nothing
-    # TODO add config
     print(io, "M$(metrics(measurement))")
     return nothing
 end
 
-# TODO this should/could be a macro probably like this:
-# `@measure my_cool_metric(42) config = (this = :will, be = "great")`
-# This is sort of a constructor for `Measurement`
-function measure(f::Function, inputs::Tuple; config)
-    metrics = f(inputs...; config)
-    # TODO id
-    return Measurement(config, metrics)
-end
-
-###-----------------------------------------------------------------------------
-### File I/O
-###-----------------------------------------------------------------------------
+##------------------------------------------------------------------------------
+## File API
+##------------------------------------------------------------------------------
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/22
 
 function save(measurement::Measurement;
               directory::AbstractString = "."
              )::Nothing
-    # TODO remove hash
     filename::String = "$(id(config(measurement))).json"
     path::String = joinpath(directory, filename)
     print_json(path, (config = config(measurement),
@@ -79,14 +101,11 @@ function save(measurement::Measurement;
     return nothing
 end
 
-# TODO
 function load(::Type{Measurement}, path::AbstractString)::Measurement
     raw::Dict{Symbol, Any} =
         parse_json(path; dicttype = OrderedDict{Symbol, Any})
-    (raw_config_id::String, _ext) = splitext(basename(path))
     config = raw[:config] |> NamedTuple
     metrics = raw[:metrics] |> NamedTuple
-    @assert UUID(raw_config_id) == id(config)
     return Measurement(config, metrics)
 end
 
@@ -103,21 +122,43 @@ end
     created_at::DateTime
 end
 
-function broadcastable(benchmark::Benchmark)::Ref
-    return Ref(benchmark)
-end
-
-# TODO maybe replace this with `Base.@kwdef`
 function Benchmark(f, inputs, config, measurements, description)
     return Benchmark(f, inputs, config, measurements, description, now())
 end
 
-# TODO this implementation assumes inputs isn't empty
+function benchmark(f::Function,
+                   inputs::Tuple;
+                   config,
+                   description::String = "",
+                   persist::String = ""
+                  )::Benchmark
+    to_be_persisted::Bool = !isempty(persist)
+
+    configs = product(config)
+    benchmark::Benchmark =
+        let measurements = Array{Measurement}(undef, size(configs))
+            Benchmark(f, inputs, config, measurements, description)
+        end
+
+    if to_be_persisted
+        save(benchmark; directory = persist)
+    end
+
+    @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
+        measurements(benchmark)[i] = measure(f, inputs; config)
+        if to_be_persisted
+            directory = "$(path(benchmark; directory = persist))/measurements"
+            save(measurements(benchmark)[i]; directory)
+        end
+    end
+
+    return benchmark
+end
+
 function id(benchmark::Benchmark)::UUID
     return benchmark_id(inputs(benchmark), config(benchmark))
 end
 
-# TODO
 function benchmark_id(inputs, config)::UUID
     inputs_hash::UInt64 =
         reduce((h, i) -> hash(i, h), inputs; init = UInt64(0))
@@ -125,8 +166,20 @@ function benchmark_id(inputs, config)::UUID
     return UUID(inputs_hash, config_hash)
 end
 
-isundef(::UndefInitializer) = true
-isundef(::Any) = false
+function missing_f end
+
+###-----------------------------------------------------------------------------
+### Base API
+###-----------------------------------------------------------------------------
+
+function broadcastable(benchmark::Benchmark)::Ref
+    return Ref(benchmark)
+end
+
+###-----------------------------------------------------------------------------
+### File API
+###-----------------------------------------------------------------------------
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/22
 
 function load(::Type{Benchmark}, path::AbstractString)::Benchmark
     info::NamedTuple =
@@ -143,9 +196,6 @@ function load(::Type{Benchmark}, path::AbstractString)::Benchmark
                      info[:description])
 end
 
-# TODO
-function missing_f end
-
 function save(benchmark::Benchmark; directory::AbstractString = ".")::Nothing
     path::String = joinpath(directory, filename(benchmark))
     mkpath(path)
@@ -153,7 +203,6 @@ function save(benchmark::Benchmark; directory::AbstractString = ".")::Nothing
     print_json("$path/info.json",
                (description = description(benchmark),
                 config = config(benchmark)))
-    # TODO save measurements
 
     return nothing
 end
@@ -165,35 +214,6 @@ end
 
 function path(obj; directory = "")::String
     return joinpath(directory, filename(obj))
-end
-
-# TODO maybe find a better way to persist the executed measurements or whatever
-function benchmark(f::Function,
-                   inputs::Tuple;
-                   config,
-                   description::String = "",
-                   persist::String = ""
-                  )::Benchmark
-    to_be_persisted::Bool = !isempty(persist)
-
-    configs = product(config)
-    _measurements = Array{Measurement}(undef, size(configs))
-    benchmark::Benchmark =
-        Benchmark(f, inputs, config, _measurements, description)
-
-    if to_be_persisted
-        save(benchmark; directory = persist)
-    end
-
-    @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
-        measurements(benchmark)[i] = measure(f, inputs; config)
-        if to_be_persisted
-            directory = "$(path(benchmark; directory = persist))/measurements"
-            save(measurements(benchmark)[i]; directory)
-        end
-    end
-
-    return benchmark
 end
 
 end # module

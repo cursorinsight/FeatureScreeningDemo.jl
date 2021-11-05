@@ -11,14 +11,8 @@ module FeatureScreeningDemo
 ###=============================================================================
 
 include("Utilities.jl")
-
 include("Metrics.jl")
-
-include("Benchmarking.jl")
-
 include("Visualization.jl")
-
-include("CommandLine.jl")
-include("commands.jl")
+include("command_line.jl")
 
 end # module

@@ -4,17 +4,17 @@
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
 
-module CmdScreen
+module __Command__screen
 
 ###=============================================================================
 ### Imports
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: description, compile, execute
+import FeatureScreeningDemo.Utilities.CommandLine: description, compile, execute
 
 # Command compilation imports
-using FeatureScreeningDemo.CommandLine: @cmd_str, Settings, @settings
+using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str, Settings, @settings
 #
 # Command execution imports
 using FeatureScreening: load, FeatureSet, screen, save, names
@@ -24,12 +24,13 @@ using FeatureScreeningDemo.Utilities: split, @path_str
 ### Command API
 ###=============================================================================
 
-function description(::cmd"screen")::String
+function description(::Cmd"screen")::String
     return """
+    This command screens a feature set.
     """
 end
 
-function compile(::Type{Settings}, ::cmd"screen")::Settings
+function compile(::Type{Settings}, ::Cmd"screen")::Settings
     return @settings begin
         "--config"
         help = "path of the screen configuration"
@@ -50,7 +51,7 @@ function compile(::Type{Settings}, ::cmd"screen")::Settings
     end
 end
 
-function execute(command::cmd"screen")::Integer
+function execute(command::Cmd"screen")::Integer
     (path::String, into::String, config::NamedTuple) = get_arguments(command)
 
     feature_set::FeatureSet = load(FeatureSet, path)
@@ -72,9 +73,8 @@ function execute(command::cmd"screen")::Integer
     return 0
 end
 
-# TODO maybe add some structure, normalize names and types of indexable
-# things here
-function get_arguments(command::cmd"screen")::Tuple
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/12
+function get_arguments(command::Cmd"screen")::Tuple
     cwd::String = pwd()
     path::String = command["path"]
     to::String = get(command, "to", dirname(path))
@@ -87,7 +87,7 @@ end
 
 const DEFAULT_CONFIG = (; test_size = 0.0, screen = (;))
 
-function load_config(command::cmd"screen")::NamedTuple
+function load_config(command::Cmd"screen")::NamedTuple
     config::NamedTuple = if ispath(command["config"])
         load(NamedTuple, command["config"])
     else

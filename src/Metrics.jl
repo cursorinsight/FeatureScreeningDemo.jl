@@ -26,7 +26,7 @@ const DEFAULT_FOREST_CONFIG =
      min_samples_split = 2,
      min_purity_increase = 0.01)
 
-# TODO
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/16
 function goodness(train::FeatureSet,
                   test::FeatureSet;
                   config::NamedTuple = DEFAULT_FOREST_CONFIG

@@ -8,9 +8,14 @@
 ### Imports
 ###=============================================================================
 
-using FeatureScreeningDemo.Benchmarking: benchmark, Benchmark, measurements
-using FeatureScreeningDemo.Benchmarking: save, load
-using FeatureScreeningDemo.Benchmarking: Measurement, metric
+using FeatureScreeningDemo.Utilities.Benchmarking:
+    benchmark,
+    Benchmark,
+    measurements,
+    Measurement,
+    metric
+
+using FeatureScreeningDemo.Utilities.Benchmarking: save, load
 
 ###=============================================================================
 ### Testset
@@ -65,6 +70,5 @@ using FeatureScreeningDemo.Benchmarking: Measurement, metric
         @test_broken benchmark.inputs == (0.01,)
         @test all(benchmark.measurements .== ms)
         @test benchmark.description == ""
-        @warn "asd" benchmark.measurements
     end
 end

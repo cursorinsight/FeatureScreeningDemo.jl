@@ -3,6 +3,7 @@
 ###
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/12
 
 module CommandLine
 
@@ -49,8 +50,12 @@ function Base.show(io::IO, command::Command{C}) where {C}
     return nothing
 end
 
-macro cmd_str(command)
+macro Cmd_str(command)
     return :(Command{Symbol($command)})
+end
+
+macro cmd_str(command)
+    return :(Command{Symbol($command)}())
 end
 
 function getindex(command::Command, key::String)
@@ -79,8 +84,6 @@ const Settings = ArgParseSettings
 ### Main
 ###-----------------------------------------------------------------------------
 
-# TODO remove or revamp
-# TODO rename or something, this function returns strings
 function COMMANDS()::Vector{String}
     return [m.sig.types[2].parameters |> only |> string
             for m in methods(execute)
@@ -98,7 +101,7 @@ end
 function parse(::Type{Command}, raw_arguments::Vector{String})::Command
     @assert !isempty(raw_arguments)
     (raw_command::String, raw_arguments...) = raw_arguments
-    # TODO this assert handles the only "--help" argument as an unknown command
+    # TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/15
     @assert raw_command in COMMANDS() "Unknown command: $raw_command"
     command = Command(raw_command)
     settings::Settings = compile(Settings, command)
@@ -110,9 +113,10 @@ function parse(::Type{Command}, raw_arguments::Vector{String})::Command
     return command
 end
 
-function usage(io::IO = stderr)::Nothing
-    # TODO replace with some built-in function
-    println("Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
+function print_usage(io::IO = stderr)::Nothing
+    println(io, "Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
+    println(io)
+    println(io, description(cmd"__main__"))
     return nothing
 end
 
@@ -134,14 +138,13 @@ function execute(command::Command{C}) where{C}
     throw(MethodError(execute, (Command{C},)))
 end
 
-# TODO rename maybe
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/10
 function handle_exception(exception::Exception)::Int
-    usage()
-    rethrow(exception) # TODO remove whenever we have logging
+    print_usage()
+    rethrow(exception)
     return 1
 end
 
-# TODO rename
 macro settings end
 
 macro settings()

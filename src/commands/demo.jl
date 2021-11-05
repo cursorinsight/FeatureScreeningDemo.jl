@@ -1,32 +1,33 @@
-##-----------------------------------------------------------------------------
+##------------------------------------------------------------------------------
 ### Copyright (C) 2021- Cursor Insight
 ###
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/13
 
-module CmdDemo
+module __Command__demo
 
 ###=============================================================================
 ### Imports
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: description, compile, execute
+import FeatureScreeningDemo.Utilities.CommandLine: description, compile, execute
 
 # Command compilation imports
-using FeatureScreeningDemo.CommandLine: @cmd_str, Settings, @settings
+using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str, Settings, @settings
 
 # Command execution imports
 using FeatureScreeningDemo.Utilities: now2
 using FeatureScreening: FeatureSet, screen
-using FeatureScreeningDemo.Benchmarking: Benchmark, benchmark
+using FeatureScreeningDemo.Utilities.Benchmarking: Benchmark, benchmark
 using FeatureScreeningDemo.Metrics: goodness
 
 ###=============================================================================
 ### Command API
 ###=============================================================================
 
-function description(::cmd"demo")::String
+function description(::Cmd"demo")::String
     return """
     This command demonstrates most of the features of this demo application;
       1. generate a feature set,
@@ -38,11 +39,11 @@ function description(::cmd"demo")::String
     """
 end
 
-function compile(::Type{Settings}, ::cmd"demo")::Settings
+function compile(::Type{Settings}, ::Cmd"demo")::Settings
     return @settings
 end
 
-function execute(::cmd"demo")::Integer
+function execute(::Cmd"demo")::Integer
     return main()
 end
 
@@ -68,8 +69,6 @@ const DEFAULT_TEST_CONFIG =
      min_purity_increase = [0.0, 0.04, 0.16],
      n_trees = [2, 4, 8, 16])
 
-# TODO create proper configuration from commandline and move this function into
-# the `execute` function directly
 function main(;
               directory::AbstractString = "demo.$(now2())",
 
@@ -121,8 +120,6 @@ function main(;
                   config,
                   description = "screened",
                   persist = directory)
-
-        # TODO add plotting
     end
 
     return 0

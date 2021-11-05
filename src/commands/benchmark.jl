@@ -4,35 +4,36 @@
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
 
-module CmdBenchmark
+module __Command__benchmark
 
 ###=============================================================================
 ### Imports
 ###=============================================================================
 
 # Command API
-import FeatureScreeningDemo.CommandLine: description, compile, execute
+import FeatureScreeningDemo.Utilities.CommandLine: description, compile, execute
 
 # Command compilation imports
-using FeatureScreeningDemo.CommandLine: @cmd_str, Settings, @settings
+using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str, Settings, @settings
 #
 # Command execution imports
 using FeatureScreening: load, FeatureSet
 using FeatureScreening.Utilities: Maybe
 using FeatureScreeningDemo.Metrics: goodness
-using FeatureScreeningDemo.Benchmarking: benchmark
+using FeatureScreeningDemo.Utilities.Benchmarking: benchmark
 using FeatureScreeningDemo.Utilities: split, @pwd_str
 
 ###=============================================================================
 ### Command API
 ###=============================================================================
 
-function description(::cmd"benchmark")::String
+function description(::Cmd"benchmark")::String
     return """
+    This command benchmarks a feature set.
     """
 end
 
-function compile(::Type{Settings}, ::cmd"benchmark")::Settings
+function compile(::Type{Settings}, ::Cmd"benchmark")::Settings
     return @settings begin
         "--config"
         help = "path of the benchmark configuration"
@@ -57,7 +58,8 @@ function compile(::Type{Settings}, ::cmd"benchmark")::Settings
     end
 end
 
-function execute(command::cmd"benchmark")::Integer
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/12
+function execute(command::Cmd"benchmark")::Integer
     arguments::NamedTuple = get_arguments(command)
 
     @info "Start to benchmark" arguments
@@ -80,9 +82,7 @@ function execute(command::cmd"benchmark")::Integer
     return 0
 end
 
-# TODO maybe add some structure, normalize like names and types of indexable
-# things here, add some schema maybe
-function get_arguments(command::cmd"benchmark")::NamedTuple
+function get_arguments(command::Cmd"benchmark")::NamedTuple
     train::String = command["train"]
     train = pwd"$train"
     test::Maybe{String} =
@@ -107,6 +107,17 @@ function get_arguments(command::cmd"benchmark")::NamedTuple
     return (; train, test, config, output)
 end
 
+const DEFAULT_CONFIG = (; train_size = 0.8, config = (;))
+
+function load_config(command::Cmd"benchmark")::NamedTuple
+    config::NamedTuple = if ispath(command["config"])
+        load(NamedTuple, command["config"])
+    else
+        (;)
+    end
+    return merge(DEFAULT_CONFIG, config)
+end
+
 function has_test_set(arguments::NamedTuple)::Bool
     return has_test_set(arguments[:test])
 end
@@ -115,20 +126,8 @@ function has_test_set(::Nothing)::Bool
     return false
 end
 
-# TODO maybe add some more checker, like is that a valid feature set?
 function has_test_set(path::AbstractString)::Bool
     return isfile(path)
-end
-
-const DEFAULT_CONFIG = (; train_size = 0.8, config = (;))
-
-function load_config(command::cmd"benchmark")::NamedTuple
-    config::NamedTuple = if ispath(command["config"])
-        load(NamedTuple, command["config"])
-    else
-        (;)
-    end
-    return merge(DEFAULT_CONFIG, config)
 end
 
 end # module

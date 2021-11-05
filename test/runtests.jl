@@ -11,4 +11,4 @@
 using Test
 
 include("test.utilities.jl")
-include("test.benchmarking.jl")
+include("test.utilities.benchmarking.jl")

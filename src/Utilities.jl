@@ -10,102 +10,42 @@ module Utilities
 ### Imports
 ###=============================================================================
 
-import Base: NamedTuple
+# File I/O
+import FeatureScreening.Utilities: load
+using OrderedCollections: OrderedDict
 
+# JSON related
+using JSON.Writer: print as __print_json
+using JSON.Parser: parsefile as __parse_json
+
+# Getter generator
 using Base.Iterators: filter
-import Base.Iterators: product
-
-using LazySets: convex_hull
-
-using Dates: now, format as _format, DateTime, DateFormat
-
-import UUIDs: UUID
-
-using JSON.Writer: print as _print_json
-using JSON.Parser: parsefile as _parse_json
-using OrderedCollections: OrderedDict
-
-# TODO remove if possible
-import FeatureScreening: load
-
 using MacroTools: isstructdef, @capture
-using Base: Fix1
 
-using OrderedCollections: OrderedDict
-using FeatureScreening.Types: FeatureSet, labels
-
+# `Base` extensions
+import Base: NamedTuple
+import Base.Iterators: product
 import Base: split
 
-using Base.Meta: parse as _parse
+# Rest
+using Dates: now, format as __format
 using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
+using LazySets: convex_hull
+import UUIDs: UUID
+using OrderedCollections: OrderedDict
+import Base: split
+using FeatureScreening.Types: FeatureSet, labels
+using Base.Meta: parse as __parse
+using Base: Fix1
 
 ###=============================================================================
 ### API
 ###=============================================================================
 
-function hitrate(a::AbstractArray, b::AbstractArray)::Float64
-    @assert size(a) == size(b)
-    return count(a .== b) / length(a)
-end
+###-----------------------------------------------------------------------------
+### File I/O
+###-----------------------------------------------------------------------------
 
-function NamedTuple(keys, values)
-    return NamedTuple{Tuple(keys)}(values)
-end
-
-# TODO This should/could/might be lazy.
-# TODO Because of the iteration over `String` in `product` causes (A) and (B).
-# Maybe not necessary.
-function product(kvs::NamedTuple)
-    # TODO (A)
-    to_be_exposed = filter(pairs(kvs)) do (k, v)
-        return v isa AbstractVector
-    end |> collect
-    ks = first.(to_be_exposed)
-    vs = last.(to_be_exposed)
-    return map(product(vs...)) do vs::Tuple
-        # TODO (B)
-        return merge(kvs, NamedTuple(ks, vs))
-    end
-end
-
-# TODO
-function upper_hull(points::Vector)::Vector{<: Vector}
-    # TODO `convex_hull` works on vector of vectors.
-    points = [[coords...] for coords in points]
-    hull::Vector{<: Vector} = convex_hull(points)
-    (i::Int, j::Int) = (argmin(hull), argmax(hull))
-    # TODO this is how it works for us
-    return hull[[i:-1:begin; end:-1:j]]
-end
-
-function now2(datetime = now(), format = FILENAME_DATETIME_FORMAT)::String
-    return _format(datetime, format)
-end
-
-function UUID(high::UInt64, low::UInt64)::UUID
-    return UUID(UInt128(high) << 64 + UInt128(low))
-end
-
-function print_json(path::AbstractString, obj; kwargs...)::Nothing
-    open(path, "w") do io
-        print_json(io, obj; kwargs...)
-    end
-    return nothing
-end
-
-function print_json(io::IO, obj; indent = 2)::Nothing
-    _print_json(io, obj, indent)
-    return nothing
-end
-
-function parse_json(path::AbstractString;
-                    dicttype::Type{T} = Dict{Symbol, Any},
-                    kwargs...
-                   )::T where {T}
-    _parse_json(path; dicttype, kwargs...)
-end
-
-# TODO
 function load(::Type{NamedTuple}, path::AbstractString)::NamedTuple
     @assert ispath(path)
     kvs = parse_json(path; dicttype = OrderedDict{Symbol, Any})
@@ -119,6 +59,49 @@ end
 function convert_rec(::Type{NamedTuple}, x)
     return x
 end
+
+###-----------------------------------------------------------------------------
+### Path helpers
+###-----------------------------------------------------------------------------
+
+function projectpath(parts::AbstractString...)::String
+    return joinpath(@__DIR__, "..", parts...)
+end
+
+macro path_str(str::String)
+    return :(normpath($(esc(__parse("\"$str\"")))))
+end
+
+macro pwd_str(str::String)
+    return :(joinpath(pwd(), normpath($(esc(__parse("\"$str\""))))))
+end
+
+###-----------------------------------------------------------------------------
+### JSON related
+###-----------------------------------------------------------------------------
+
+function print_json(path::AbstractString, obj; kwargs...)::Nothing
+    open(path, "w") do io
+        print_json(io, obj; kwargs...)
+    end
+    return nothing
+end
+
+function print_json(io::IO, obj; indent = 2)::Nothing
+    __print_json(io, obj, indent)
+    return nothing
+end
+
+function parse_json(path::AbstractString;
+                    dicttype::Type{T} = Dict{Symbol, Any},
+                    kwargs...
+                   )::T where {T}
+    __parse_json(path; dicttype, kwargs...)
+end
+
+###-----------------------------------------------------------------------------
+### Getter generator
+###-----------------------------------------------------------------------------
 
 macro with_getters(expr)
     @assert isstructdef(expr)
@@ -165,8 +148,63 @@ function getter_fun_expr(T, field::Symbol, F = :Any)::Expr
     end
 end
 
-function projectpath(parts::AbstractString...)::String
-    return joinpath(@__DIR__, "..", parts...)
+###-----------------------------------------------------------------------------
+### `Base` extensions
+###-----------------------------------------------------------------------------
+
+function NamedTuple(keys, values)
+    return NamedTuple{Tuple(keys)}(values)
+end
+
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/18
+# Because of the iteration over `String` in `product` causes [A] and [B].
+function product(kvs::NamedTuple)
+    # [A]
+    to_be_exposed = filter(pairs(kvs)) do (k, v)
+        return v isa AbstractVector
+    end |> collect
+    ks = first.(to_be_exposed)
+    vs = last.(to_be_exposed)
+    return map(product(vs...)) do vs::Tuple
+        # [B]
+        return merge(kvs, NamedTuple(ks, vs))
+    end
+end
+
+function split(itr; size::Real = 0.5)::Tuple
+    @assert 0 <= size <= 1
+    i = floor(Int, length(itr) * size)
+    return (itr[begin:i], itr[i+1:end])
+end
+
+###-----------------------------------------------------------------------------
+### Rest
+###-----------------------------------------------------------------------------
+
+function hitrate(a::AbstractArray, b::AbstractArray)::Float64
+    @assert size(a) == size(b)
+    return count(a .== b) / length(a)
+end
+
+function now2(datetime = now(), format = FILENAME_DATETIME_FORMAT)::String
+    return __format(datetime, format)
+end
+
+"""
+    upper_hull(points::Vector)::Vector{<: Vector}
+
+This is not a general purpose upper hull function. Just wrapping a weird
+implementation to integrate into a weirder one.
+"""
+function upper_hull(points::Vector)::Vector{<: Vector}
+    points = [[coords...] for coords in points]
+    hull::Vector{<: Vector} = convex_hull(points)
+    (i::Int, j::Int) = (argmin(hull), argmax(hull))
+    return hull[[i:-1:begin; end:-1:j]]
+end
+
+function UUID(high::UInt64, low::UInt64)::UUID
+    return UUID(UInt128(high) << 64 + UInt128(low))
 end
 
 function group_by(f::Function, itr::AbstractVector{T})::OrderedDict where {T}
@@ -180,17 +218,11 @@ function group_by(itr::AbstractVector)
     return group_by(identity, itr)
 end
 
-function split(itr; size::Real = 0.5)::Tuple
-    @assert 0 <= size <= 1
-    i = floor(Int, length(itr) * size)
-    return (itr[begin:i], itr[i+1:end])
-end
-
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/17
 function split(feature_set::T;
                dim = 1,
                kwargs...
               )::Tuple{T, T} where {T <: FeatureSet}
-    # TODO
     @assert dim == 1 "Just row oriented splitting were implemented."
 
     labels_by_idxs::Vector =
@@ -210,16 +242,12 @@ function split(feature_set::T;
     return (feature_set[train_idxs, :], feature_set[test_idxs, :])
 end
 
-macro path_str(str::String)
-    return :(normpath($(esc(_parse("\"$str\"")))))
-end
-
-macro pwd_str(str::String)
-    return :(joinpath(pwd(), normpath($(esc(_parse("\"$str\""))))))
-end
-
 function parse(::Type{T})::Function where {T}
     return Fix1(parse, T)
 end
+
+# TODO
+include("utilities/Benchmarking.jl")
+include("utilities/CommandLine.jl")
 
 end # module
