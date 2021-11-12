@@ -4,6 +4,7 @@
 ### All rights reserved.
 ###-----------------------------------------------------------------------------
 # TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/12
+# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/14
 
 module CommandLine
 
@@ -19,8 +20,9 @@ export main
 
 using Base: @kwdef
 import Base: show, getindex, get
-import FeatureScreeningDemo.Utilities: parse
+import FeatureScreeningDemo.Utilities: parse, @assert_
 using ArgParse: @add_arg_table!, ArgParseSettings, parse_args
+import ArgParse: usage_string as usage
 
 ###=============================================================================
 ### Implementation
@@ -80,52 +82,43 @@ end
 
 const Settings = ArgParseSettings
 
-###-----------------------------------------------------------------------------
-### Main
-###-----------------------------------------------------------------------------
+##------------------------------------------------------------------------------
+## Exceptions
+##------------------------------------------------------------------------------
 
-function COMMANDS()::Vector{String}
-    return [m.sig.types[2].parameters |> only |> string
-            for m in methods(execute)
-            if isconcretetype(m.sig)] |> sort
+abstract type CommandLineError <: Exception end
+
+struct MissingArgument <: CommandLineError end
+
+struct UnknownCommand <: CommandLineError
+    command::String
 end
+
+abstract type CommandLineAction <: Exception end
+
+struct ShowUsage{command <: Command} <: CommandLineAction
+    command::command
+end
+
+###-----------------------------------------------------------------------------
+### Command line API
+###-----------------------------------------------------------------------------
 
 function main(arguments::Vector{String})
     try
-        arguments |> parse(Command) |> execute |> exit
+        arguments |> parse(Command) |> execute
     catch exception
-        exception |> handle_exception |> exit
-    end
-end
-
-function parse(::Type{Command}, raw_arguments::Vector{String})::Command
-    @assert !isempty(raw_arguments)
-    (raw_command::String, raw_arguments...) = raw_arguments
-    # TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/15
-    @assert raw_command in COMMANDS() "Unknown command: $raw_command"
-    command = Command(raw_command)
-    settings::Settings = compile(Settings, command)
-    settings.prog = name(command)
-    settings.preformatted_description = true
-    settings.description = description(command)
-    arguments = parse_args(raw_arguments, settings)
-    merge!(command.arguments, arguments)
-    return command
-end
-
-function print_usage(io::IO = stderr)::Nothing
-    println(io, "Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h] ...")
-    println(io)
-    println(io, description(cmd"__main__"))
-    return nothing
+        exception |> caught
+    end |> exit
 end
 
 ###-----------------------------------------------------------------------------
 ### Command API
 ###-----------------------------------------------------------------------------
 
-function description(::Command)::String
-    return ""
+function execute(command::Command{C}) where{C}
+    @error "Missing `execute` method for Command{$C}."
+    throw(MethodError(execute, (Command{C},)))
 end
 
 function compile(::Type{Settings}, command::Command{C}) where {C}
@@ -133,17 +126,44 @@ function compile(::Type{Settings}, command::Command{C}) where {C}
     throw(MethodError(compile, (Type{Settings}, Command{C})))
 end
 
-function execute(command::Command{C}) where{C}
-    @error "Missing `execute` method for Command{$C}."
-    throw(MethodError(execute, (Command{C},)))
+function description(::Command)::String
+    return ""
 end
 
-# TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/10
-function handle_exception(exception::Exception)::Int
-    print_usage()
+###-----------------------------------------------------------------------------
+### Exception API
+###-----------------------------------------------------------------------------
+
+function caught(exception::Exception)::Int
+    handle(ShowUsage(cmd"__main__"))
     rethrow(exception)
     return 1
 end
+
+function caught(action::CommandLineAction)::Int
+    return handle(action)
+end
+
+function caught(::MissingArgument)::Int
+    @error "Missing argument"
+    handle(ShowUsage(cmd"__main__"))
+    return 1
+end
+
+function caught(error::UnknownCommand)::Int
+    @error "Unknown command: $(error.command)"
+    handle(ShowUsage(cmd"__main__"))
+    return 1
+end
+
+function handle(action::ShowUsage)::Int
+    print(stderr, usage(action.command))
+    return 0
+end
+
+##------------------------------------------------------------------------------
+## Utilities
+##------------------------------------------------------------------------------
 
 macro settings end
 
@@ -157,6 +177,56 @@ end
 
 macro settings(settings, arg_table)
     return :(@add_arg_table! $settings $arg_table)
+end
+
+###-----------------------------------------------------------------------------
+### Internals
+###-----------------------------------------------------------------------------
+
+function COMMANDS()::Vector{String}
+    return [m.sig.types[2].parameters |> only |> string
+            for m in methods(execute)
+            if isconcretetype(m.sig)] |> sort
+end
+
+function parse(::Type{Command}, raw_arguments::Vector{String})::Command
+    @debug "Parse command" raw_arguments
+
+    # <program>
+    @assert_ !isempty(raw_arguments) MissingArgument()
+
+    # <program> --help
+    @assert_ raw_arguments != ["-h"]  ShowUsage(cmd"__main__")
+    @assert_ raw_arguments != ["--help"]  ShowUsage(cmd"__main__")
+
+    (raw_command::String, raw_arguments...) = raw_arguments
+    @assert_ raw_command in COMMANDS() UnknownCommand(raw_command)
+
+    command::Command = Command(raw_command)
+    settings::Settings = set_up(Settings, command)
+    arguments::Dict{String, Any} = parse_args(raw_arguments, settings)
+    merge!(command.arguments, arguments)
+    return command
+end
+
+function set_up(::Type{Settings}, command::Command)::Settings
+    settings::Settings = compile(Settings, command)
+    settings.prog = name(command)
+    settings.preformatted_description = true
+    settings.description = description(command)
+    return settings
+end
+
+function usage(c::Command)::String
+    return usage(compile(Settings, c))
+end
+
+function usage(::Cmd"__main__")::String
+    return """
+    Usage: $(PROGRAM_FILE) $(join(COMMANDS(), '|')) [-h|--help] ...")
+
+    $(description(cmd"__main__"))
+    """
 end
 
 end # module

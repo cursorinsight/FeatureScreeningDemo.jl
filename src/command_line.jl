@@ -18,8 +18,8 @@ using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str
 function description(::Cmd"__main__")::String
     return """
     This application demonstrates the usage and usefullness of our feature
-    screening method. You can run a completed "demo", run some "benchmark"
-    to measure your feature set or "screen" that.
+    screening method. You can run a complete "demo", run some "benchmark" to
+    measure your feature set or "screen" that.
     """
 end
 

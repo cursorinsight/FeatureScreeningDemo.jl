@@ -65,7 +65,7 @@ end
 ###-----------------------------------------------------------------------------
 
 function projectpath(parts::AbstractString...)::String
-    return joinpath(@__DIR__, "..", parts...)
+    return normpath(joinpath(@__DIR__, "..", parts...))
 end
 
 macro path_str(str::String)
@@ -244,6 +244,15 @@ end
 
 function parse(::Type{T})::Function where {T}
     return Fix1(parse, T)
+end
+
+macro assert_(cond)
+    return :(@assert cond)
+end
+
+macro assert_(cond, expr)
+    @assert expr isa Expr
+    return :($(esc(cond)) ? nothing : throw($(esc(expr))))
 end
 
 # TODO
