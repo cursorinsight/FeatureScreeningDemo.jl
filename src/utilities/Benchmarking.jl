@@ -31,18 +31,18 @@ using OrderedCollections: OrderedDict
 
 # Benchmark
 using FeatureScreeningDemo.Utilities: @with_getters
+using Base.Iterators: product
 using UUIDs: UUID
-using Dates: DateTime, format
+using Dates: DateTime
 using ProgressMeter: @showprogress
 
 # Benchmark Base API
 import Base.Broadcast: broadcastable
-using Base.Iterators: product
 
 # Benchmark File API
 import FeatureScreening.Utilities: save, load, id, created_at
 using Base.Iterators: product
-using Dates: now
+using Dates: now, format
 using FeatureScreening.Utilities: FILENAME_DATETIME_FORMAT
 using FeatureScreeningDemo.Utilities: print_json, parse_json
 using OrderedCollections: OrderedDict
@@ -130,11 +130,13 @@ function benchmark(f::Function,
                    inputs::Tuple;
                    config,
                    description::String = "",
-                   persist::String = ""
+                   persist::String = "",
+                   warm_up::Bool = true
                   )::Benchmark
-    to_be_persisted::Bool = !isempty(persist)
 
+    to_be_persisted::Bool = !isempty(persist)
     configs = product(config)
+
     benchmark::Benchmark =
         let measurements = Array{Measurement}(undef, size(configs))
             Benchmark(f, inputs, config, measurements, description)
@@ -142,6 +144,11 @@ function benchmark(f::Function,
 
     if to_be_persisted
         save(benchmark; directory = persist)
+    end
+
+    if warm_up
+        @info "Warming up the measurement"
+        measure(f, inputs; config = first(configs))
     end
 
     @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
