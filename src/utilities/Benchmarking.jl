@@ -133,6 +133,7 @@ function benchmark(f::Function,
                    persist::String = ""
                   )::Benchmark
     to_be_persisted::Bool = !isempty(persist)
+    warm_up::Bool = true
 
     configs = product(config)
     benchmark::Benchmark =
@@ -145,6 +146,10 @@ function benchmark(f::Function,
     end
 
     @showprogress "Benchmark $(description)" for (i, config) in pairs(configs)
+        if warm_up
+            measurements(benchmark)[i] = measure(f, inputs; config)
+            warm_up = false
+        end
         measurements(benchmark)[i] = measure(f, inputs; config)
         if to_be_persisted
             directory = "$(path(benchmark; directory = persist))/measurements"
