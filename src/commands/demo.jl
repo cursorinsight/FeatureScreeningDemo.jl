@@ -18,10 +18,13 @@ import FeatureScreeningDemo.Utilities.CommandLine: description, compile, execute
 using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str, Settings, @settings
 
 # Command execution imports
-using FeatureScreeningDemo.Utilities: now2
+using FeatureScreeningDemo.Utilities: now2, @path_str
+using FeatureScreeningDemo.Utilities: select, Selector, All, Idxs, Screen
 using FeatureScreening: FeatureSet, screen
 using FeatureScreeningDemo.Utilities.Benchmarking: Benchmark, benchmark
 using FeatureScreeningDemo.Metrics: goodness
+
+using FeatureScreeningDemo.Visualization: plot, save
 
 ###=============================================================================
 ### Command API
@@ -61,65 +64,87 @@ const DEFAULT_SCREEN_CONFIG =
      n_trees = 10)
 
 const DEFAULT_TEST_CONFIG =
-    (n_subfeatures = 8,
+    (n_subfeatures = -1,
      partial_sampling = 1.0,
      max_depth = -1,
      min_samples_leaf = 1,
      min_samples_split = 2,
-     min_purity_increase = [0.0, 0.04, 0.16],
+     min_purity_increase = [0.0, 0.01, 0.04, 0.08, 0.16],
      n_trees = [2, 4, 8, 16])
+"""
+    main(;
+         sample_count::Integer = 1500,
+         feature_count::Integer = 512,
+         label_count::Integer = 100,
+         kwargs...
+        )::Integer
 
+The main entry point of the `demo` command with random generated train and test
+feature sets.
+"""
 function main(;
-              directory::AbstractString = "demo.$(now2())",
+              sample_count::Integer = 1500,
+              feature_count::Integer = 512,
+              label_count::Integer = 100,
+              kwargs...
+             )::Integer
 
-              # feature set arguments
-              no_samples::Integer = 100,
-              no_features::Integer = 128,
-              label_count::Integer = 10,
+    train::FeatureSet =
+        rand(FeatureSet, sample_count, feature_count; label_count)
+    test::FeatureSet =
+        rand(FeatureSet, sample_count, feature_count; label_count)
 
-              # screen arguments
-              reduced_size::Integer = 16,
-              step_size::Integer = 8,
-              screen_config = DEFAULT_SCREEN_CONFIG,
+    return main(train, test; kwargs...)
+end
 
-              # benchmark arguments
-              test_config = DEFAULT_TEST_CONFIG
+"""
+    main(train::FeatureSet,
+         test::FeatureSet;
+         reduced_size::Integer = size(train, 2) ÷ 5,
+         step_size::Integer = size(train, 2) ÷ 10,
+         screen_config::NamedTuple = DEFAULT_SCREEN_CONFIG,
+         test_config::NamedTuple = DEFAULT_TEST_CONFIG,
+         directory::AbstractString = "demo.$(now2())"
+        )::Integer
+
+The main entry point for the `demo` command. The function creates a screened
+feature set based on the given `train` feature set, then run benchmarks as you
+can read in the command description.
+"""
+function main(train::FeatureSet,
+              test::FeatureSet;
+              reduced_size::Integer = size(train, 2) ÷ 5,
+              step_size::Integer = size(train, 2) ÷ 10,
+              screen_config::NamedTuple = DEFAULT_SCREEN_CONFIG,
+              test_config::NamedTuple = DEFAULT_TEST_CONFIG,
+              directory::AbstractString = "demo.$(now2())"
              )::Integer
     mkpath(directory)
 
-    # Test features
-    test::FeatureSet = rand(FeatureSet, no_samples, no_features; label_count)
-    # All features
-    all::FeatureSet = rand(FeatureSet, no_samples, no_features; label_count)
-    test_all::FeatureSet = test
-    # Theoretically top features
-    top::FeatureSet = all[:, (no_features-reduced_size+1):no_features]
-    test_top::FeatureSet = test[:, names(top)]
+    # In this tuple you can find the pairs of the names and the selectors of the
+    # feature sets.
+    selectors =
+        ["all" => All(),
+         "top" => Idxs(:, names(train)[end .- (0:reduced_size - 1)]),
+         "screened" => Screen(; reduced_size, step_size, config = screen_config)
+        ]
 
-    # Screen
-    @info "Screen"
-    screened::FeatureSet =
-        screen(all; reduced_size, step_size, config = screen_config)
-    test_screened::FeatureSet = test[:, names(screened)]
+    for (name, selector) in selectors
+        __train::FeatureSet = select(train, selector)
+        __test::FeatureSet = select(test, Idxs(:, names(__train)))
 
-    let config::NamedTuple = test_config
-        benchmark(goodness,
-                  (all, test_all);
-                  config,
-                  description = "all",
-                  persist = directory)
+        b = benchmark(goodness,
+                      (__train, __test);
+                      config = test_config,
+                      description = name,
+                      persist = directory)
 
-        benchmark(goodness,
-                  (top, test_top);
-                  config,
-                  description = "top",
-                  persist = directory)
+        p = plot(b.measurements;
+                 group_by = :n_trees,
+                 x = :elapsed_time,
+                 y = :accuracy)
 
-        benchmark(goodness,
-                  (screened, test_screened);
-                  config,
-                  description = "screened",
-                  persist = directory)
+        save(p, path"$directory/$(name)_benchmark_$(now2()).png")
     end
 
     return 0

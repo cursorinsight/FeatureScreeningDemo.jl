@@ -18,7 +18,7 @@ export plot, save
 ###=============================================================================
 
 import PlotlyJS: plot, scatter
-using PlotlyJS: savefig
+using PlotlyJS: SyncPlot, savefig
 using FeatureScreening.Types: FeatureSet, labels, features
 using FeatureScreeningDemo.Utilities: upper_hull
 using FeatureScreeningDemo.Utilities.Benchmarking: Measurement, metric, config
@@ -120,6 +120,11 @@ function select_data(measurements::Array{Measurement},
     return filter(measurements) do m
         return all(m.config[k] == criteria[k] for k in keys(criteria))
     end
+end
+
+function save(plot::SyncPlot, filename::String; format::String = "png")::Nothing
+    savefig(plot, filename; format)
+    return nothing
 end
 
 end # module
