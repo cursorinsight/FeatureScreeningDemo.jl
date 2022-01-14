@@ -20,6 +20,8 @@ using Base: @kwdef
 # TODO
 using FeatureScreeningDemo.Utilities: FeatureSet, labels
 
+using FeatureScreeningDemo.Utilities: select, All, Idxs, Screen
+
 ###=============================================================================
 ### Testset
 ###=============================================================================
@@ -115,6 +117,55 @@ using FeatureScreeningDemo.Utilities: FeatureSet, labels
         @test labels(feature_set) == [fill.(1:600, 16)...;]
         @test labels(result[1]) == [fill.(1:600, 9)...;]
         @test labels(result[2]) == [fill.(1:600, 7)...;]
+    end
+end
+
+@testset "Selector methods for `FeatureSet`" begin
+    @testset "All" begin
+        feature_set = rand(FeatureSet, 10, 10)
+
+        let result = select(feature_set, All())
+            @test result isa FeatureSet
+            @test feature_set == result
+        end
+    end
+
+    @testset "Idxs" begin
+        feature_set = rand(FeatureSet, 10, 10)
+        let result = select(feature_set, Idxs(:, 1:3))
+            @test result isa FeatureSet
+            @test feature_set[:, 1:3] == result
+        end
+        let result = select(feature_set, Idxs([1, 2, 7], 4:10))
+            @test result isa FeatureSet
+            @test feature_set[[1, 2, 7], 4:end] == result
+        end
+
+        test_set = reshape(1:24, 2, 3, 4)
+        let result = select(test_set, Idxs(1, [1, 3], 2:4))
+            @test result isa Array{Int64,2}
+            @test result isa Matrix
+            @test result == [7 13 19; 11 17 23]
+        end
+    end
+
+    @testset "Screen" begin
+        feature_set = rand(FeatureSet, 10, 10)
+
+        config = (n_subfeatures = -1,
+                  partial_sampling = 1.0,
+                  max_depth = 10,
+                  min_samples_leaf = 1,
+                  min_samples_split = 2,
+                  min_purity_increase = 0.1,
+                  n_trees = 10)
+
+        let result = select(feature_set, Screen(reduced_size = 3,
+                                                step_size = 10,
+                                                config = config))
+            @test result isa FeatureSet
+            @test (10, 3) == size(result)
+        end
     end
 
 end

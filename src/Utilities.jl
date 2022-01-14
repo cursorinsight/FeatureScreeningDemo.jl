@@ -258,5 +258,6 @@ end
 # TODO
 include("utilities/Benchmarking.jl")
 include("utilities/CommandLine.jl")
+include("utilities/Select.jl")
 
 end # module
