@@ -1,0 +1,16 @@
+{
+  "test_size": 0.4,
+
+  "screen": {
+    "reduced_size": 500,
+    "step_size": 1000,
+    "config": {
+      "n_subfeatures": 1000,
+      "n_trees": 100,
+      "partial_sampling": 0.9,
+      "min_samples_leaf": 10,
+      "min_samples_split": 10,
+      "min_purity_increase": 0
+    }
+  }
+}

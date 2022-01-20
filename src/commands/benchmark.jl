@@ -73,10 +73,10 @@ function execute(command::Cmd"benchmark")::Integer
             split(train; size = arguments[:config][:train_size])
         end
 
-    @info "Benchmark" arguments[:config][:config]
+    @info "Benchmark" arguments[:config][:benchmark]
     benchmark(goodness,
               (train, test);
-              config = arguments[:config][:config],
+              config = arguments[:config][:benchmark],
               persist = arguments[:output])
 
     return 0
