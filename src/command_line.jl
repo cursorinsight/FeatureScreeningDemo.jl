@@ -17,7 +17,7 @@ using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str
 # TODO https://github.com/cursorinsight/FeatureScreeningDemo.jl/issues/11
 function description(::Cmd"__main__")::String
     return """
-    This application demonstrates the usage and usefullness of our feature
+    This application demonstrates the usage and usefulness of our feature
     screening method. You can run a complete "demo", run some "benchmark" to
     measure your feature set or "screen" that.
     """
@@ -32,3 +32,4 @@ end # module
 include("commands/demo.jl")
 include("commands/benchmark.jl")
 include("commands/screen.jl")
+include("commands/tbd.jl")
