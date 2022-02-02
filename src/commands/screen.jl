@@ -15,7 +15,7 @@ import FeatureScreeningDemo.Utilities.CommandLine: description, compile, execute
 
 # Command compilation imports
 using FeatureScreeningDemo.Utilities.CommandLine: @Cmd_str, Settings, @settings
-#
+
 # Command execution imports
 using FeatureScreening: load, FeatureSet, screen, save, names
 using FeatureScreeningDemo.Utilities: split, @path_str
@@ -77,12 +77,12 @@ end
 function get_arguments(command::Cmd"screen")::Tuple
     cwd::String = pwd()
     path::String = command["path"]
-    to::String = get(command, "to", dirname(path))
+    to::String = get(command, "output", dirname(path))
     path = path"$cwd/$path"
-    to = path"$cwd/$to"
+    into = path"$cwd/$to"
 
     config::NamedTuple = load_config(command)
-    return (path, to, config)
+    return (path, into, config)
 end
 
 const DEFAULT_CONFIG = (; test_size = 0.0, screen = (;))
