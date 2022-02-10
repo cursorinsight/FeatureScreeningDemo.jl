@@ -1,0 +1,13 @@
+{
+  "train_size": 0.7,
+
+  "benchmark": {
+    "n_subfeatures": 1000,
+    "n_trees": 10000,
+    "partial_sampling": 0.7,
+    "min_samples_leaf": 2,
+    "min_samples_split": 8,
+    "min_purity_increase":0.21
+  }
+}
+
