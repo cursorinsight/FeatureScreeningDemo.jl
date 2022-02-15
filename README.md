@@ -8,7 +8,7 @@ add "ssh://git@github.com/cursorinsight/FeatureScreeningDemo.jl"#master
 ```
 
 ### Set up for non-julia users
-Install Julia v >= 1.6.0. You can install it with [asdf](https://asdf-vm.com/).
+Install Julia >= v1.6.0. You can install it with [asdf](https://asdf-vm.com/).
 
 Clone the project
 ```bash
@@ -33,9 +33,33 @@ $ sudo apt install hdf5-tools
 ```
 
 ## Usage
-This application demonstrates the usage and usefulness of our feature screening
-method. You can run a complete `demo` to test all functionality, run some
-`benchmark` to measure your feature set or `screen` you feature set.
+This application demonstrates the usage and usefulness of our random-forest
+based feature screening method. You can run a complete `demo` to test all
+functionality with random feature sets, run `benchmark` to measure your data set
+accuracy or `screen` you feature set to get a reduced one.
+
+### Generate synthetic data
+You can use our
+[BiometricBlender](https://github.com/cursorinsight/biometricblender) to
+generate synthetic data. You can find more information its project `README.md`.
+To test the funcionallity you can generate a data set with the following
+parameters:
+
+```bash
+python -m biometric_blender \
+    --n-labels 100 \
+    --n-samples-per-label 64 \
+    --n-true-features 100 \
+    --n-fake-features 300 \
+    --min-usefulness 0.5 \
+    --max-usefulness 1 \
+    --location-sharing-extent 100 \
+    --location-ordering-extent 50 \
+    --n-features-out 10000 \
+    --blending-mode logarithmic \
+    --min-count 4 \
+    --max-count 8
+```
 
 ### Create a random feature dataset
 If you don't have a valid dataset to test the features, you can generate random
@@ -86,7 +110,8 @@ If you don't have valid dataset, you can generate random training feature set.
 You can find the steps for that under `Create random feature dataset` heading.
 
 ### `screen` command
-This command screens the given feature set and generate a screened one.
+This command screens the given feature set and splits that into a train and a
+test data.
 
 Usage:
 ```bash
